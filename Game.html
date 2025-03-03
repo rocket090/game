@@ -447,31 +447,35 @@
     }
 
     function target() {
-      if (currentTurn !== "human") return;
+  if (currentTurn !== "human") return;
+  // Targetボタンをすぐに無効化して連打を防ぐ
+  document.getElementById('targetBtn').classList.add('disabled');
+  document.getElementById('targetBtn').disabled = true;
+  let currentSecret = aiSecretNumber;
+  document.getElementById('action-result-message').innerText = "TARGET: 数字を選んでください。";
+  document.querySelectorAll('#guess-number-buttons button').forEach(button => {
+    button.onclick = function() {
+      // ターゲット数字選択時のみ試行回数をカウント
       humanAttemptCount++;
       document.getElementById('attempt-count').innerText = humanAttemptCount;
-      let currentSecret = aiSecretNumber;
-      document.getElementById('action-result-message').innerText = "TARGET: 数字を選んでください。";
-      document.querySelectorAll('#guess-number-buttons button').forEach(button => {
-        button.onclick = function() {
-          targetDigit = parseInt(button.innerText);
-          let targetMessage = currentSecret.includes(targetDigit.toString()) ?
-            `TARGET(${targetDigit}): 含まれている` :
-            `TARGET(${targetDigit}): 含まれていない`;
-          recordAction("TARGET", targetMessage, "human");
-          document.querySelectorAll('#guess-number-buttons button').forEach(btn => {
-            btn.onclick = function() { toggleDigit(parseInt(btn.innerText)); };
-          });
-          document.getElementById('targetBtn').classList.add('disabled');
-          document.getElementById('targetBtn').disabled = true;
-          setTimeout(() => {
-            document.getElementById('action-result-message').innerText = "";
-            resetInput();
-            endHumanTurn();
-          }, 500);
-        }
+      targetDigit = parseInt(button.innerText);
+      let targetMessage = currentSecret.includes(targetDigit.toString()) ?
+        `TARGET(${targetDigit}): 含まれている` :
+        `TARGET(${targetDigit}): 含まれていない`;
+      recordAction("TARGET", targetMessage, "human");
+      // 通常の数字ボタンのonclickを復元
+      document.querySelectorAll('#guess-number-buttons button').forEach(btn => {
+        btn.onclick = function() { toggleDigit(parseInt(btn.innerText)); };
       });
+      setTimeout(() => {
+        document.getElementById('action-result-message').innerText = "";
+        resetInput();
+        endHumanTurn();
+      }, 500);
     }
+  });
+}
+
 
     function slash() {
       if (currentTurn !== "human") return;
