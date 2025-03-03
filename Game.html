@@ -582,7 +582,75 @@ function aiChooseAction() {
 }
 
     /* ---------- AIターンの処理 ---------- */
-    function aiTurn() { updateTurnMessage(); disableHumanInput(); console.log("AIターン開始: 候補数 =", aiCandidates.length); // 候補数が極端に少ない場合は、即座に数字入力を実施 if (aiCandidates.length <= 10) { letnewGuess = pickCandidate(); console.log("候補数が少ないので即推測 =", newGuess, aiCandidates.length); processGuess(newGuess); endAITurn(); return; } let action = aiChooseAction(); console.log("AI action chosen:", action);if (action === "highLow") { aiHighLowAction(); return; } else if (action === "target") { aiTargetAction(); return; } else if(action === "slash") { aiSlashAction(); return; } else { // normalGuess let newGuess = ""; if (aiDifficulty === "Easy") { newGuess = pickCandidate(); console.log("AI (Easy): 完全ランダムな推測 =", newGuess); } else if (aiDifficulty === "Normal") { if (Math.random() < 0.5) { newGuess = pickCandidate(); console.log("AI (Normal): ランダムな推測 =", newGuess); } else { if (lastAIGuess !== "" && lastAIFeedback !== null) { newGuess = aiHeuristicGuess(lastAIGuess, lastAIFeedback); console.log("AI (Normal): ヘルリスティック推測 =", newGuess); } else { newGuess = "123";console.log("AI (Normal): 初回推測 =", newGuess); } } } else if (aiDifficulty === "Hard") { if (lastAIGuess !== "" && lastAIFeedback !== null) { newGuess = aiHeuristicGuess(lastAIGuess, lastAIFeedback); console.log("AI (Hard): ヘルリスティック推測 =", newGuess); } else { newGuess = "123"; console.log("AI (Hard): 初回推測 =", newGuess); } } // エラー回避：newGuess が undefined または不正な場合はフォールバック if (!newGuess || newGuess.length !== 3) { newGuess = generateNumber(); console.log("フォールバックで newGuess =", newGuess); } // 前回と同じ推測を避ける while (newGuess === lastAIGuess) { newGuess = pickCandidate(); console.log("前回と同じ推測になったため、候補から再選択 =", newGuess); } processGuess(newGuess); endAITurn(); } }
+    function aiTurn() {
+  updateTurnMessage();
+  disableHumanInput();
+  
+  console.log("AIターン開始: 候補数 =", aiCandidates.length);
+  
+  // 候補数が極端に少ない場合は、即座に数字入力を実施
+  if(aiCandidates.length <= 10) {
+    let newGuess = pickCandidate();
+    console.log("候補数が少ないので即推測 =", newGuess, aiCandidates.length);
+    processGuess(newGuess);
+    endAITurn();
+    return;
+  }
+  
+  let action = aiChooseAction();
+  console.log("AI action chosen:", action);
+  
+  if(action === "highLow") {
+    aiHighLowAction();
+    return;
+  } else if(action === "target") {
+    aiTargetAction();
+    return;
+  } else if(action === "slash") {
+    aiSlashAction();
+    return;
+  } else { 
+    // normalGuess
+    let newGuess = "";
+    if (aiDifficulty === "Easy") {
+      newGuess = pickCandidate();
+      console.log("AI (Easy): 完全ランダムな推測 =", newGuess);
+    } else if (aiDifficulty === "Normal") {
+      if (Math.random() < 0.5) {
+           newGuess = pickCandidate();
+           console.log("AI (Normal): ランダムな推測 =", newGuess);
+      } else {
+           if(lastAIGuess !== "" && lastAIFeedback !== null) {
+                newGuess = aiHeuristicGuess(lastAIGuess, lastAIFeedback);
+                console.log("AI (Normal): ヘルリスティック推測 =", newGuess);
+           } else {
+                newGuess = "123";
+                console.log("AI (Normal): 初回推測 =", newGuess);
+           }
+      }
+    } else if (aiDifficulty === "Hard") {
+      if(lastAIGuess !== "" && lastAIFeedback !== null) {
+           newGuess = aiHeuristicGuess(lastAIGuess, lastAIFeedback);
+           console.log("AI (Hard): ヘルリスティック推測 =", newGuess);
+      } else {
+           newGuess = "123";
+           console.log("AI (Hard): 初回推測 =", newGuess);
+      }
+    }
+    // エラー回避：newGuess が undefined または不正な場合はフォールバック
+    if (!newGuess || newGuess.length !== 3) {
+       newGuess = generateNumber();
+       console.log("フォールバックで newGuess =", newGuess);
+    }
+    // 前回と同じ推測を避ける
+    while(newGuess === lastAIGuess) {
+      newGuess = pickCandidate();
+      console.log("前回と同じ推測になったため、候補から再選択 =", newGuess);
+    }
+    processGuess(newGuess);
+    endAITurn();
+  }
+}
 
 
     // 新しい AI 推測ロジック（攻略表例）
@@ -636,9 +704,23 @@ function aiChooseAction() {
     // ※ 各ボーナスアクションは候補リストの絞り込みのみを実施し、その後ターン終了
 
     // 高低情報で絞る
-function aiHighLowAction() { aiUsedHighLow = true; let pattern = ""; for (let i = 0; i < 3; i++) { pattern += (Number(playerSecretNumber[i]) < 5) ? '[LOW]' : '[HIGH]'; } recordAction("HIGH & LOW", pattern, "ai"); aiCandidates = aiCandidates.filter(candidate => { let candidatePattern = ""; for (let i = 0; i < 3; i++) { candidatePattern += (Number(candidate[i]) < 5) ? '[LOW]' : '[HIGH]'; } return candidatePattern === pattern; }); console.log("highLowアクション後: 候補数 =", aiCandidates.length); // 候補数を表示 endAITurn();
-}
-
+    function aiHighLowAction() {
+      aiUsedHighLow = true;
+      let pattern = "";
+      for (let i = 0; i < 3; i++) {
+        pattern += (Number(playerSecretNumber[i]) < 5) ? '[LOW]' : '[HIGH]';
+      }
+      recordAction("HIGH & LOW", pattern, "ai");
+      aiCandidates = aiCandidates.filter(candidate => {
+        let candidatePattern = "";
+        for (let i = 0; i < 3; i++) {
+          candidatePattern += (Number(candidate[i]) < 5) ? '[LOW]' : '[HIGH]';
+        }
+        return candidatePattern === pattern;
+      });
+      console.log("highLowアクション後: 候補数 =", aiCandidates.length);
+      endAITurn();
+    }
 
     // TARGETアクション：候補中の出現頻度から絞る
     function aiTargetAction() {
