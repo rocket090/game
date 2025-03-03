@@ -1,0 +1,735 @@
+<!DOCTYPE Html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>game</title>
+</head>
+<body>
+<style>
+    body { font-family: 'Arial', sans-serif; text-align: center; background-color: #f4f4f4; color: #333; }
+    h1 { color: #222; }
+    .game-container {
+      background: white; padding: 30px; margin: 20px auto;
+      width: 80%; max-width: 515px; border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .number-buttons button,
+    .action-buttons button {
+      margin: 3px; padding: 10px; font-size: 16px;
+      width: 41px; height: 40px; border: none; border-radius: 5px;
+      cursor: pointer; background: #cccccc; color: black;
+    }
+    .number-buttons .disabled,
+    .action-buttons .disabled { background-color: #999; pointer-events: none; }
+    .action-buttons button { width: 90px; }
+    .reset-button { background: #666; }
+    .history-container { text-align: left; margin-top: 20px; }
+    ul { list-style: none; padding: 0; }
+    /* 履歴エントリは文字幅に合わせ、各項目は左右揃え */
+    .history-entry {
+      display: block; width: max-content; margin: -5px 5px;
+      padding: 8px; border-radius: 5px; background: #ccc;
+    }
+    .human-history { text-align: right; margin-left: auto; background-color: #add8e6 !important;}
+    .ai-history { text-align: left; margin-right: auto;  }
+    .history-index {
+      background: #888; color: white; width: 30px; height: 30px;
+      border-radius: 5px; display: inline-block;
+      text-align: center; line-height: 30px; font-weight: bold;
+    }
+    .history-text { display: inline-block; margin-left: 10px; }
+    .action-result {
+      margin-top: 10px; padding: 10px; background-color: #e0e0e0;
+      border-radius: 5px; display: none;
+    }
+    .history-entry.correct { background-color: #ffe0e0 !important; }
+    .history-entry.correct .history-index { background-color: red; }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <h1>Number Game - AI</h1>
+    <!-- プレイヤー秘密数字設定エリア -->
+    <div id="player-secret-setup">
+      
+  <div class="number-buttons" id="difficulty-buttons">
+    <button id="diff-easy" onclick="selectDifficulty('Easy')"style="
+    width: 75px;
+">Easy</button>
+    <button id="diff-normal" onclick="selectDifficulty('Normal')"style="
+    width: 75px;
+">Normal</button>
+    <button id="diff-hard" onclick="selectDifficulty('Hard')"style="
+    width: 75px;
+">Hard</button>
+  </div><br><p>あなたの3桁の異なる数字を設定してください</p>
+      <div class="number-buttons" id="secret-number-buttons">
+        <button onclick="toggleSecretDigit(0)" id="secret-btn0">0</button>
+        <button onclick="toggleSecretDigit(1)" id="secret-btn1">1</button>
+        <button onclick="toggleSecretDigit(2)" id="secret-btn2">2</button>
+        <button onclick="toggleSecretDigit(3)" id="secret-btn3">3</button>
+        <button onclick="toggleSecretDigit(4)" id="secret-btn4">4</button>
+        <button onclick="toggleSecretDigit(5)" id="secret-btn5">5</button>
+        <button onclick="toggleSecretDigit(6)" id="secret-btn6">6</button>
+        <button onclick="toggleSecretDigit(7)" id="secret-btn7">7</button>
+        <button onclick="toggleSecretDigit(8)" id="secret-btn8">8</button>
+        <button onclick="toggleSecretDigit(9)" id="secret-btn9">9</button>
+      </div>
+      <p>入力: <span id="secret-guess"></span></p>
+      <!-- 確定ボタン -->
+      <button id="goBtn" onclick="confirmSecret()" style="margin: 3px; padding: 10px; font-size: 16px;
+    border: none; border-radius: 5px; cursor: pointer; background: #add8e6; color: black;">Go</button>
+  <!-- 秘密数字入力用リセットボタンに ID を追加 -->
+  <button id="secretResetBtn" onclick="resetSecretInput()" style="margin: 3px; padding: 10px; font-size: 16px;
+    border: none; border-radius: 5px; cursor: pointer; background: #cccccc; color: black;">Reset</button>
+    </div>
+    
+    <div id="game-area" style="display:none;">
+      <!-- turn-message は固定文言 -->
+      <p id="turn-message">
+        (あなたの数字: 未設定) <br>AIの数字を当ててください。
+        <a href="https://ja.wikipedia.org/wiki/Numer0n#%E3%83%AB%E3%83%BC%E3%83%AB">ルール</a>
+      </p>
+      <div class="number-buttons" id="guess-number-buttons">
+        <button onclick="toggleDigit(0)" id="btn0">0</button>
+        <button onclick="toggleDigit(1)" id="btn1">1</button>
+        <button onclick="toggleDigit(2)" id="btn2">2</button>
+        <button onclick="toggleDigit(3)" id="btn3">3</button>
+        <button onclick="toggleDigit(4)" id="btn4">4</button>
+        <button onclick="toggleDigit(5)" id="btn5">5</button>
+        <button onclick="toggleDigit(6)" id="btn6">6</button>
+        <button onclick="toggleDigit(7)" id="btn7">7</button>
+        <button onclick="toggleDigit(8)" id="btn8">8</button>
+        <button onclick="toggleDigit(9)" id="btn9">9</button>
+      </div>
+      <p>入力: <span id="guess"></span></p>
+      <p>試行回数: <span id="attempt-count">0</span></p>
+      <p id="action-result-message"></p>
+      <div class="action-buttons">
+        <button onclick="highLow()" id="highLowBtn">High&Low</button>
+        <button onclick="target()" id="targetBtn">Target</button>
+        <button onclick="slash()" id="slashBtn" style="margin-right: 15px;">Slash</button>
+        <!-- Try ボタンは常に #add8e6 -->
+        <button onclick="humanGuess()" style="background-color: #add8e6;" id="tryBtn">Try</button>
+        <button onclick="resetInput()" class="reset-button">Reset</button>
+      </div>
+      <div class="history-container">
+        <h2 style="margin-left: 5px;">履歴</h2>
+        <ul id="history"></ul>
+      </div>
+      <div class="action-buttons">
+        <button onclick="resetGame()" id="play-again" style="display: none; width: auto;">もう一度プレイ</button>
+      </div>
+    </div>
+  </div>
+  
+  <p><a href="https://sites.google.com/view/miniminigamess/%E3%83%9B%E3%83%BC%E3%83%A0" style="color: darkgray;">Solo-Mode</a></p>
+
+  <script>
+    // グローバル変数
+    let aiSecretNumber = "";         // AIの秘密数字（ランダム生成）
+    let playerSecretNumber = "";     // プレイヤーが設定する秘密数字
+    let currentGuess = "";
+    let secretGuess = "";
+    let humanAttemptCount = 0;       // 人間の試行回数
+    let targetDigit = null;
+    let currentTurn = "human";       // "human" または "ai"
+    let humanMoveCount = 0;          // 人間の履歴番号
+    let aiMoveCount = 0;             // AIの履歴番号
+
+    // AIボーナスアクション使用済みフラグ
+    let aiUsedHighLow = false;
+    let aiUsedTarget = false;
+    let aiUsedSlash = false;
+
+    // AIの候補リスト（高度な戦略用）およびこれまでのAI推測
+    let aiCandidates = [];
+    let aiGuesses = [];
+
+    // ページ読み込み時にAIの秘密数字を生成
+    aiSecretNumber = generateNumber();
+
+    // 3桁の異なる数字を生成
+    function generateNumber() {
+      let digits = new Set();
+      while (digits.size < 3) {
+        digits.add(Math.floor(Math.random() * 10));
+      }
+      return Array.from(digits).join('');
+    }
+
+    // グローバル変数（初期は Normal）
+let aiDifficulty = "Normal";
+
+// 難易度選択ボタンの色を更新する関数
+function selectDifficulty(difficulty) {
+    aiDifficulty = difficulty;
+    // すべての難易度ボタンの背景色をリセット
+    document.getElementById("diff-easy").style.backgroundColor = "";
+    document.getElementById("diff-normal").style.backgroundColor = "";
+    document.getElementById("diff-hard").style.backgroundColor = "";
+    // 選択されたボタンの背景色を #999 に設定
+    if(difficulty === "Easy") {
+         document.getElementById("diff-easy").style.backgroundColor = "#999";
+    } else if(difficulty === "Normal") {
+         document.getElementById("diff-normal").style.backgroundColor = "#999";
+    } else if(difficulty === "Hard") {
+         document.getElementById("diff-hard").style.backgroundColor = "#999";
+    }
+    console.log("Difficulty set to", aiDifficulty);
+}
+
+// ページ読み込み時に初期状態として Normal を選択
+document.addEventListener('DOMContentLoaded', function() {
+    selectDifficulty("Normal");
+});
+
+    /// AIの候補リストを初期化（すべての3桁の重複なし数字）
+function initializeAICandidates() {
+  let candidates = [];
+  for (let i = 0; i <= 9; i++) {
+    for (let j = 0; j <= 9; j++) {
+      if (i === j) continue;
+      for (let k = 0; k <= 9; k++) {
+        if (i === k || j === k) continue;
+        candidates.push("" + i + j + k);
+      }
+    }
+  }
+  return candidates;
+}
+
+    // AI候補からランダムに1つ選ぶ（すでに推測済みの数字は除外）
+    function pickCandidate() {
+        // 候補リストが空なら再生成
+  if (aiCandidates.length === 0) {
+    console.warn("aiCandidates is empty. Reinitializing candidate list.");
+    aiCandidates = initializeAICandidates();
+  }
+      let filtered = aiCandidates.filter(c => !aiGuesses.includes(c));
+      if (filtered.length === 0) {
+        // 全て使い切っている場合は、候補リストからランダムに選ぶ
+        return aiCandidates[Math.floor(Math.random() * aiCandidates.length)];
+      }
+      return filtered[Math.floor(Math.random() * filtered.length)];
+    }
+
+    // 推測結果（EAT, BITE）を計算
+    function computeFeedback(secret, guess) {
+      let eat = 0, bite = 0;
+      for (let i = 0; i < 3; i++) {
+        if (guess[i] === secret[i]) {
+          eat++;
+        } else if (secret.includes(guess[i])) {
+          bite++;
+        }
+      }
+      return {eat, bite};
+    }
+
+    /* ========= プレイヤー秘密数字設定 ========= */
+    function toggleSecretDigit(digit) {
+      let index = secretGuess.indexOf(digit.toString());
+      if (index !== -1) {
+        secretGuess = secretGuess.slice(0, index) + secretGuess.slice(index + 1);
+        document.getElementById('secret-btn' + digit).classList.remove('disabled');
+      } else if (secretGuess.length < 3) {
+        secretGuess += digit;
+        document.getElementById('secret-btn' + digit).classList.add('disabled');
+      }
+      document.getElementById('secret-guess').innerText = secretGuess;
+    }
+
+    // 秘密数字設定用リセット（disabled属性も解除）
+    function resetSecretInput() {
+      secretGuess = "";
+      document.getElementById('secret-guess').innerText = "";
+      for (let i = 0; i <= 9; i++) {
+        let btn = document.getElementById('secret-btn' + i);
+        btn.classList.remove('disabled');
+        btn.disabled = false;
+        btn.onclick = function() { toggleSecretDigit(i); };
+      }
+      // 追加: Goボタンと Reset ボタンを有効化する
+      document.getElementById('goBtn').disabled = false;
+      document.getElementById('secretResetBtn').disabled = false;
+      console.log("resetSecretInput() 完了");
+    }
+
+    function confirmSecret() {
+      if (secretGuess.length !== 3 || new Set(secretGuess).size !== 3) {
+        alert("3桁の異なる数字を入力してください。");
+        return;
+      }
+      playerSecretNumber = secretGuess;
+      updateTurnMessage();
+      // ゲーム開始時にAIの候補リストも初期化
+      aiCandidates = initializeAICandidates();
+      aiGuesses = []; // AI推測履歴リセット
+      console.log("候補数!!!!!!:", aiCandidates.length);
+      document.getElementById("player-secret-setup").style.display = "none";
+      document.getElementById("game-area").style.display = "block";
+      // ここでアクションボタンなどを有効にする処理を追加
+      enableHumanInput();
+    }
+
+    /* ========= turn-message の固定更新 ========= */
+    function updateTurnMessage() {
+  document.getElementById("turn-message").innerHTML =
+    "（難易度: " + aiDifficulty + " あなたの数字: " + playerSecretNumber + ") <br>AIの数字を当ててください。<a href='https://ja.wikipedia.org/wiki/Numer0n#%E3%83%AB%E3%83%BC%E3%83%AB'>ルール</a>";
+}
+
+
+    /* ========= 推測用操作 ========= */
+    function toggleDigit(digit) {
+      if (currentTurn !== "human") return;
+      let index = currentGuess.indexOf(digit.toString());
+      if (index !== -1) {
+        currentGuess = currentGuess.slice(0, index) + currentGuess.slice(index + 1);
+        document.getElementById('btn' + digit).classList.remove('disabled');
+      } else if (currentGuess.length < 3) {
+        currentGuess += digit;
+        document.getElementById('btn' + digit).classList.add('disabled');
+      }
+      document.getElementById('guess').innerText = currentGuess;
+    }
+
+    // 入力エリアのリセット（disabled属性も解除）
+    function resetInput() {
+      currentGuess = "";
+      document.getElementById('guess').innerText = currentGuess;
+      for (let i = 0; i <= 9; i++) {
+        let btn = document.getElementById('btn' + i);
+        btn.classList.remove('disabled');
+        btn.disabled = false;
+        btn.onclick = function() { toggleDigit(i); };
+      }
+      document.getElementById('action-result-message').innerText = '';
+      console.log("resetInput() 完了");
+    }
+
+    /* ========= ゲーム全体のリセット ========= */
+    function resetGame() {
+      console.log("resetGame() 開始");
+      aiSecretNumber = generateNumber();
+      playerSecretNumber = "";
+      currentGuess = "";
+      secretGuess = "";
+      humanAttemptCount = 0;
+      targetDigit = null;
+      currentTurn = "human";
+      humanMoveCount = 0;
+      aiMoveCount = 0;
+      aiUsedHighLow = false;
+      aiUsedTarget = false;
+      aiUsedSlash = false;
+      aiCandidates = [];
+      aiGuesses = [];
+      document.getElementById('attempt-count').innerText = humanAttemptCount;
+      document.getElementById('history').innerHTML = '';
+      document.getElementById('action-result-message').innerText = '';
+      document.getElementById('play-again').style.display = 'none';
+      
+      resetInput();
+      // アクションボタンの disabled 属性も解除
+      let highLowBtn = document.getElementById('highLowBtn');
+      let targetBtn = document.getElementById('targetBtn');
+      let slashBtn = document.getElementById('slashBtn');
+      highLowBtn.classList.remove('disabled');
+      targetBtn.classList.remove('disabled');
+      slashBtn.classList.remove('disabled');
+      highLowBtn.disabled = false;
+      targetBtn.disabled = false;
+      slashBtn.disabled = false;
+      
+      // プレイヤー秘密数字設定画面に戻す
+      document.getElementById("player-secret-setup").style.display = "block";
+      document.getElementById("game-area").style.display = "none";
+      resetSecretInput();
+      // ここで難易度ボタンも再有効化（もし disableAllButtons() 等で無効化されていた場合）
+    document.querySelectorAll('#difficulty-buttons button').forEach(btn => {
+       btn.disabled = false;
+    });
+      console.log("resetGame() 完了");
+    }
+
+    /* ========= disableAllButtons の追加 ========= */
+    function disableAllButtons() {
+      document.querySelectorAll('button').forEach(btn => {
+        if (btn.id !== 'play-again') { // "もう一度プレイ"ボタンは無効化しない
+          btn.disabled = true;
+        }
+      });
+    }
+
+    /* ========= 履歴記録（共通） ========= */
+    function recordAction(actionName, result, player) {
+      let historyList = document.getElementById('history');
+      let historyItem = document.createElement('li');
+      historyItem.classList.add('history-entry');
+      let moveIndex;
+      if (player === "ai") {
+        historyItem.classList.add('ai-history');
+        aiMoveCount++;
+        moveIndex = aiMoveCount;
+      } else {
+        historyItem.classList.add('human-history');
+        humanMoveCount++;
+        moveIndex = humanMoveCount;
+      }
+      let indexBox = document.createElement('div');
+      indexBox.classList.add('history-index');
+      indexBox.innerText = moveIndex;
+      let textBox = document.createElement('div');
+      textBox.classList.add('history-text');
+      if(player === "ai"){
+        textBox.style.color = "#333";
+      }
+      textBox.innerText = result;
+      historyItem.appendChild(indexBox);
+      historyItem.appendChild(textBox);
+      historyList.appendChild(historyItem);
+      return historyItem;
+    }
+
+    /* ========= 推測処理 ========= */
+    function processGuess(guess) {
+  if (!guess || guess.length !== 3) {
+    console.error("Invalid guess passed to processGuess:", guess);
+    return;
+  }
+  if (currentTurn === "human") {
+    humanAttemptCount++;
+    document.getElementById('attempt-count').innerText = humanAttemptCount;
+  }
+  let currentSecret = (currentTurn === "human") ? aiSecretNumber : playerSecretNumber;
+  let feedback = computeFeedback(currentSecret, guess);
+  
+  // 履歴エントリ生成
+  let historyItem = recordAction("Guess", `${guess} : ${feedback.eat}EAT ${feedback.bite}BITE`, currentTurn);
+  
+  if (currentTurn === "ai") {
+    // AIの推測履歴に追加
+    aiGuesses.push(guess);
+    lastAIGuess = guess;
+    lastAIFeedback = feedback;
+  }
+  
+  // 0EATの場合、各位の可能性から該当数字を除外する
+  if (feedback.eat === 0) {
+    aiCandidates = aiCandidates.filter(candidate =>
+      candidate[0] !== guess[0] &&
+      candidate[1] !== guess[1] &&
+      candidate[2] !== guess[2]
+    );
+    console.log("0EAT elimination applied, remaining candidates:", aiCandidates.length);
+  }
+  
+  if (feedback.eat === 3) {
+    historyItem.classList.add("correct");
+    let indexDiv = historyItem.querySelector('.history-index');
+    if (indexDiv) {
+      indexDiv.style.backgroundColor = "red";
+    }
+    let textDiv = historyItem.querySelector('.history-text');
+    if (textDiv) {
+      textDiv.style.color = "black";
+      textDiv.innerHTML = textDiv.innerHTML.replace(/3EAT/g, '<span style="color:red;font-weight:bold;">3EAT</span>');
+    }
+    document.getElementById('play-again').style.display = 'block';
+    disableAllButtons();
+    return;
+  }
+  
+  resetInput();
+  if (currentTurn === "human") {
+    endHumanTurn();
+  } else {
+    currentTurn = "human";
+    enableHumanInput();
+  }
+}
+
+
+    /* ========= 人間ターンの操作 ========= */
+    function humanGuess() {
+      if (currentTurn !== "human") return;
+      if (currentGuess.length !== 3) {
+        alert("3桁の数字を入力してください。");
+        return;
+      }
+      processGuess(currentGuess);
+    }
+
+    function highLow() {
+      if (currentTurn !== "human") return;
+      humanAttemptCount++;
+      document.getElementById('attempt-count').innerText = humanAttemptCount;
+      let currentSecret = aiSecretNumber;
+      let result = "";
+      for (let i = 0; i < 3; i++) {
+        result += (Number(currentSecret[i]) < 5) ? '[LOW]' : '[HIGH]';
+      }
+      recordAction("HIGH & LOW", result, "human");
+      document.getElementById('highLowBtn').classList.add('disabled');
+      document.getElementById('highLowBtn').disabled = true;
+      endHumanTurn();
+    }
+
+    function target() {
+      if (currentTurn !== "human") return;
+      humanAttemptCount++;
+      document.getElementById('attempt-count').innerText = humanAttemptCount;
+      let currentSecret = aiSecretNumber;
+      document.getElementById('action-result-message').innerText = "TARGET: 数字を選んでください。";
+      document.querySelectorAll('#guess-number-buttons button').forEach(button => {
+        button.onclick = function() {
+          targetDigit = parseInt(button.innerText);
+          let targetMessage = currentSecret.includes(targetDigit.toString()) ?
+            `TARGET(${targetDigit}): 含まれている` :
+            `TARGET(${targetDigit}): 含まれていない`;
+          recordAction("TARGET", targetMessage, "human");
+          document.querySelectorAll('#guess-number-buttons button').forEach(btn => {
+            btn.onclick = function() { toggleDigit(parseInt(btn.innerText)); };
+          });
+          document.getElementById('targetBtn').classList.add('disabled');
+          document.getElementById('targetBtn').disabled = true;
+          setTimeout(() => {
+            document.getElementById('action-result-message').innerText = "";
+            resetInput();
+            endHumanTurn();
+          }, 500);
+        }
+      });
+    }
+
+    function slash() {
+      if (currentTurn !== "human") return;
+      humanAttemptCount++;
+      document.getElementById('attempt-count').innerText = humanAttemptCount;
+      let currentSecret = aiSecretNumber;
+      let digits = currentSecret.split('');
+      let maxDigit = Math.max(...digits.map(d => Number(d)));
+      let minDigit = Math.min(...digits.map(d => Number(d)));
+      let result = maxDigit - minDigit;
+      recordAction("SLASH", `SLASH: ${result}`, "human");
+      document.getElementById('slashBtn').classList.add('disabled');
+      document.getElementById('slashBtn').disabled = true;
+      endHumanTurn();
+    }
+
+    // グローバル変数（既存の変数に加えて）
+    let lastAIGuess = "";
+    let lastAIFeedback = null;
+
+    // 配列をシャッフルする関数
+function shuffleArray(array) {
+  let arr = array.slice();
+  for (let i = arr.length - 1; i > 0; i--) {
+      let j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// aiDifficultyに応じたbonusアクションの順序を取得
+function getBonusActionsOrder() {
+    let actions = ["highLow", "target", "slash"];
+    if (aiDifficulty === "Hard") {
+        // Hardは常に最適な順序
+        return actions;
+    } else if (aiDifficulty === "Normal") {
+        // Normalは50%固定順、50%ランダム
+        return (Math.random() < 0.5) ? actions : shuffleArray(actions);
+    } else if (aiDifficulty === "Easy") {
+        // Easyは常にランダムな順序
+        return shuffleArray(actions);
+    }
+}
+
+function aiChooseAction() {
+  let actions = [];
+  // 通常の数字入力は常に利用可能
+  actions.push("normalGuess");
+  // bonus アクションの利用可能条件
+  if (!aiUsedTarget && aiCandidates.length > 40) {
+    actions.push("target");
+  }
+  if (!aiUsedHighLow) {
+    actions.push("highLow");
+  }
+  if (!aiUsedSlash && aiCandidates.length > 10) {
+    actions.push("slash");
+  }
+  if (aiDifficulty === "Hard") {
+    // Hard: 固定優先順 (highlow > slash > target > normalGuess)
+    if (actions.includes("highLow")) return "highLow";
+    if (actions.includes("slash")) return "slash";
+    if (actions.includes("target")) return "target";
+    return "normalGuess";
+  } else if (aiDifficulty === "Normal") {
+    // Normal: 候補からランダムに選択
+    return actions[Math.floor(Math.random() * actions.length)];
+  } else { // Easy
+    // Easy: 基本は normalGuess、でも bonus アクションがあれば20%の確率で選ぶ
+    if (actions.length > 1 && Math.random() < 0.2) {
+      let bonus = actions.filter(a => a !== "normalGuess");
+      return bonus[Math.floor(Math.random() * bonus.length)];
+    } else {
+      return "normalGuess";
+    }
+  }
+}
+
+    /* ---------- AIターンの処理 ---------- */
+    function aiTurn() { updateTurnMessage(); disableHumanInput(); console.log("AIターン開始: 候補数 =", aiCandidates.length); // 候補数が極端に少ない場合は、即座に数字入力を実施 if (aiCandidates.length <= 10) { letnewGuess = pickCandidate(); console.log("候補数が少ないので即推測 =", newGuess, aiCandidates.length); processGuess(newGuess); endAITurn(); return; } let action = aiChooseAction(); console.log("AI action chosen:", action);if (action === "highLow") { aiHighLowAction(); return; } else if (action === "target") { aiTargetAction(); return; } else if(action === "slash") { aiSlashAction(); return; } else { // normalGuess let newGuess = ""; if (aiDifficulty === "Easy") { newGuess = pickCandidate(); console.log("AI (Easy): 完全ランダムな推測 =", newGuess); } else if (aiDifficulty === "Normal") { if (Math.random() < 0.5) { newGuess = pickCandidate(); console.log("AI (Normal): ランダムな推測 =", newGuess); } else { if (lastAIGuess !== "" && lastAIFeedback !== null) { newGuess = aiHeuristicGuess(lastAIGuess, lastAIFeedback); console.log("AI (Normal): ヘルリスティック推測 =", newGuess); } else { newGuess = "123";console.log("AI (Normal): 初回推測 =", newGuess); } } } else if (aiDifficulty === "Hard") { if (lastAIGuess !== "" && lastAIFeedback !== null) { newGuess = aiHeuristicGuess(lastAIGuess, lastAIFeedback); console.log("AI (Hard): ヘルリスティック推測 =", newGuess); } else { newGuess = "123"; console.log("AI (Hard): 初回推測 =", newGuess); } } // エラー回避：newGuess が undefined または不正な場合はフォールバック if (!newGuess || newGuess.length !== 3) { newGuess = generateNumber(); console.log("フォールバックで newGuess =", newGuess); } // 前回と同じ推測を避ける while (newGuess === lastAIGuess) { newGuess = pickCandidate(); console.log("前回と同じ推測になったため、候補から再選択 =", newGuess); } processGuess(newGuess); endAITurn(); } }
+
+
+    // 新しい AI 推測ロジック（攻略表例）
+    function aiHeuristicGuess(lastGuess, feedback) {
+      let eat = feedback.eat, bite = feedback.bite;
+      let newGuess = "";
+      function getNewDigit(excludeSet) {
+        for (let d = 0; d < 10; d++) {
+          let ds = d.toString();
+          if (!excludeSet.has(ds)) {
+            excludeSet.add(ds);
+            return ds;
+          }
+        }
+        return null;
+      }
+      if(eat === 0 && bite === 0) {
+        let available = [];
+        for (let d = 0; d < 10; d++) {
+          let ds = d.toString();
+          if (!lastGuess.includes(ds)) {
+            available.push(ds);
+          }
+        }
+        available.sort();
+        newGuess = available.slice(0, 3).join('');
+      }
+      else if(eat === 0 && bite === 1) {
+        let exclude = new Set(lastGuess.split(''));
+        newGuess = lastGuess[1] + lastGuess[0] + getNewDigit(exclude);
+      }
+      else if(eat === 0 && bite === 2) {
+        let exclude = new Set(lastGuess.split(''));
+        newGuess = getNewDigit(exclude) + lastGuess[1] + lastGuess[2];
+      }
+      else if((eat === 1 && bite === 0) || (eat === 2 && bite === 0)) {
+        let exclude = new Set(lastGuess.split(''));
+        newGuess = lastGuess[1] + getNewDigit(exclude) + lastGuess[2];
+      }
+      else if(eat === 1 && bite === 1) {
+        let exclude = new Set(lastGuess.split(''));
+        newGuess = lastGuess[0] + getNewDigit(exclude) + getNewDigit(exclude);
+      }
+      else {
+        newGuess = pickCandidate();
+      }
+      return newGuess;
+    }
+
+    /* ---------- 改良した各AIボーナスアクション ---------- */
+    // ※ 各ボーナスアクションは候補リストの絞り込みのみを実施し、その後ターン終了
+
+    // 高低情報で絞る
+function aiHighLowAction() { aiUsedHighLow = true; let pattern = ""; for (let i = 0; i < 3; i++) { pattern += (Number(playerSecretNumber[i]) < 5) ? '[LOW]' : '[HIGH]'; } recordAction("HIGH & LOW", pattern, "ai"); aiCandidates = aiCandidates.filter(candidate => { let candidatePattern = ""; for (let i = 0; i < 3; i++) { candidatePattern += (Number(candidate[i]) < 5) ? '[LOW]' : '[HIGH]'; } return candidatePattern === pattern; }); console.log("highLowアクション後: 候補数 =", aiCandidates.length); // 候補数を表示 endAITurn();
+}
+
+
+    // TARGETアクション：候補中の出現頻度から絞る
+    function aiTargetAction() {
+      aiUsedTarget = true;
+      let freq = Array(10).fill(0);
+      for (let candidate of aiCandidates) {
+        for (let digit of candidate) {
+          freq[Number(digit)]++;
+        }
+      }
+      let targetDigitCandidate = null;
+      let minDiff = Infinity;
+      for (let d = 0; d < 10; d++) {
+        let diff = Math.abs(freq[d] - aiCandidates.length / 2);
+        if (diff < minDiff) {
+          minDiff = diff;
+          targetDigitCandidate = d;
+        }
+      }
+      targetDigit = targetDigitCandidate;
+      let currentSecret = playerSecretNumber;
+      let targetMessage;
+      if (currentSecret.includes(targetDigit.toString())) {
+        targetMessage = `TARGET(${targetDigit}): 含まれている`;
+        aiCandidates = aiCandidates.filter(candidate => candidate.includes(targetDigit.toString()));
+      } else {
+        targetMessage = `TARGET(${targetDigit}): 含まれていない`;
+        aiCandidates = aiCandidates.filter(candidate => !candidate.includes(targetDigit.toString()));
+      }
+      recordAction("TARGET", targetMessage, "ai");
+      console.log("targetアクション後: 選択数字 =", targetDigit, "候補数 =", aiCandidates.length);
+      endAITurn();
+    }
+
+    // SLASHアクション：最大値-最小値で絞る
+    function aiSlashAction() {
+      aiUsedSlash = true;
+      let currentSecret = playerSecretNumber;
+      let digits = currentSecret.split('');
+      let maxDigit = Math.max(...digits.map(d => Number(d)));
+      let minDigit = Math.min(...digits.map(d => Number(d)));
+      let slashResult = maxDigit - minDigit;
+      recordAction("SLASH", `SLASH: ${slashResult}`, "ai");
+      aiCandidates = aiCandidates.filter(candidate => {
+        let cdigits = candidate.split('');
+        let cmax = Math.max(...cdigits.map(d => Number(d)));
+        let cmin = Math.min(...cdigits.map(d => Number(d)));
+        return (cmax - cmin) === slashResult;
+      });
+      console.log("slashアクション後: 候補数 =", aiCandidates.length);
+      endAITurn();
+    }
+
+    function endHumanTurn() {
+      currentTurn = "ai";
+      disableHumanInput();
+      setTimeout(aiTurn, 1000);
+    }
+
+    function endAITurn() {
+      currentTurn = "human";
+      updateTurnMessage();
+      enableHumanInput();
+    }
+
+    function disableHumanInput() {
+      document.querySelectorAll('#guess-number-buttons button').forEach(btn => {
+        btn.disabled = true;
+        btn.style.backgroundColor = "#999";
+      });
+      document.querySelectorAll('.action-buttons button').forEach(btn => {
+        btn.disabled = true;
+        btn.style.backgroundColor = "#999";
+      });
+    }
+
+    function enableHumanInput() {
+      document.querySelectorAll('#guess-number-buttons button').forEach(btn => {
+        btn.disabled = false;
+        btn.style.backgroundColor = "";
+      });
+      document.querySelectorAll('.action-buttons button').forEach(btn => {
+        btn.disabled = false;
+        if (btn.id === "tryBtn") {
+          btn.style.backgroundColor = "#add8e6";
+        } else {
+          btn.style.backgroundColor = "";
+        }
+      });
+      resetInput();
+    }
+</script>
+</body>
+</html>
