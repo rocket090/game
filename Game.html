@@ -548,38 +548,76 @@ function getBonusActionsOrder() {
 }
 
 function aiChooseAction() {
-  let actions = [];
-  // 通常の数字入力は常に利用可能
-  actions.push("normalGuess");
-  // bonus アクションの利用可能条件
-  if (!aiUsedTarget && aiCandidates.length > 40) {
-    actions.push("target");
-  }
+  let bestAction = "normalGuess";
+  let bestCandidatesCount = aiCandidates.length;
+
+  // highLowアクションのシミュレーション
   if (!aiUsedHighLow) {
-    actions.push("highLow");
-  }
-  if (!aiUsedSlash && aiCandidates.length > 10) {
-    actions.push("slash");
-  }
-  if (aiDifficulty === "Hard") {
-    // Hard: 固定優先順 (highlow > slash > target > normalGuess)
-    if (actions.includes("highLow")) return "highLow";
-    if (actions.includes("slash")) return "slash";
-    if (actions.includes("target")) return "target";
-    return "normalGuess";
-  } else if (aiDifficulty === "Normal") {
-    // Normal: 候補からランダムに選択
-    return actions[Math.floor(Math.random() * actions.length)];
-  } else { // Easy
-    // Easy: 基本は normalGuess、でも bonus アクションがあれば20%の確率で選ぶ
-    if (actions.length > 1 && Math.random() < 0.2) {
-      let bonus = actions.filter(a => a !== "normalGuess");
-      return bonus[Math.floor(Math.random() * bonus.length)];
-    } else {
-      return "normalGuess";
+    let pattern = "";
+    for (let i = 0; i < 3; i++) {
+      pattern += (Number(playerSecretNumber[i]) < 5) ? '[LOW]' : '[HIGH]';
+    }
+    let highLowCandidates = aiCandidates.filter(candidate => {
+      let candidatePattern = "";
+      for (let i = 0; i < 3; i++) {
+        candidatePattern += (Number(candidate[i]) < 5) ? '[LOW]' : '[HIGH]';
+      }
+      return candidatePattern === pattern;
+    });
+    if (highLowCandidates.length < bestCandidatesCount) {
+      bestCandidatesCount = highLowCandidates.length;
+      bestAction = "highLow";
     }
   }
+
+  // targetアクションのシミュレーション（候補数が多い場合のみ適用）
+  if (!aiUsedTarget && aiCandidates.length > 40) {
+    let freq = Array(10).fill(0);
+    for (let candidate of aiCandidates) {
+      for (let digit of candidate) {
+        freq[Number(digit)]++;
+      }
+    }
+    // 候補リストが半分程度になるような数字を探す
+    let bestTargetDigit = null;
+    let bestDiff = Infinity;
+    for (let d = 0; d < 10; d++) {
+      let diff = Math.abs(freq[d] - aiCandidates.length / 2);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        bestTargetDigit = d;
+      }
+    }
+    // 含む場合と含まない場合の両方をシミュレーションし、より絞れる方を採用
+    let includeCandidates = aiCandidates.filter(candidate => candidate.includes(bestTargetDigit.toString()));
+    let excludeCandidates = aiCandidates.filter(candidate => !candidate.includes(bestTargetDigit.toString()));
+    let targetCandidatesCount = Math.min(includeCandidates.length, excludeCandidates.length);
+    if (targetCandidatesCount < bestCandidatesCount) {
+      bestCandidatesCount = targetCandidatesCount;
+      bestAction = "target";
+    }
+  }
+
+  // slashアクションのシミュレーション（候補数がある程度残っている場合のみ適用）
+  if (!aiUsedSlash && aiCandidates.length > 10) {
+    let digits = playerSecretNumber.split('');
+    let playerMax = Math.max(...digits.map(d => Number(d)));
+    let playerMin = Math.min(...digits.map(d => Number(d)));
+    let slashResult = playerMax - playerMin;
+    let slashCandidates = aiCandidates.filter(candidate => {
+      let cdigits = candidate.split('');
+      let cmax = Math.max(...cdigits.map(d => Number(d)));
+      let cmin = Math.min(...cdigits.map(d => Number(d)));
+      return (cmax - cmin) === slashResult;
+    });
+    if (slashCandidates.length < bestCandidatesCount) {
+      bestCandidatesCount = slashCandidates.length;
+      bestAction = "slash";
+    }
+  }
+  return bestAction;
 }
+
 
     /* ---------- AIターンの処理 ---------- */
     function aiTurn() {
