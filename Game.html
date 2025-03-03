@@ -319,6 +319,7 @@
       resetInput();
       document.querySelectorAll('#highLowBtn, #targetBtn, #slashBtn, #tryBtn').forEach(btn => {
           btn.disabled = false;
+          btn.classList.remove('disabled'); // ここで "disabled" クラスを削除
           btn.style.backgroundColor = (btn.id === "tryBtn") ? "#add8e6" : "";
       });
       document.getElementById("player-secret-setup").style.display = "block";
