@@ -616,13 +616,13 @@
         if (aiDifficulty === "Normal") {
           // Normal: プレイヤー秘密数字の1桁（位置は伏せる＝ここでは最初の桁）をボーナスとして与える
           let bonusDigit = playerSecretNumber[0];
-          recordAction("AI Bonus Hint", `Bonus digit provided: ${bonusDigit}`, "ai");
+          // recordAction("AI Bonus Hint", `Bonus digit provided: ${bonusDigit}`, "ai");
           aiCandidates = aiCandidates.filter(candidate => candidate.includes(bonusDigit));
           aiBonusHintApplied = true;
         } else if (aiDifficulty === "Hard") {
           // Hard: プレイヤー秘密数字の2桁（最初の2桁）をボーナスとして与える
           let bonusDigits = playerSecretNumber.substring(0, 2);
-          recordAction("AI Bonus Hint", `Bonus digits provided: ${bonusDigits}`, "ai");
+          // recordAction("AI Bonus Hint", `Bonus digits provided: ${bonusDigits}`, "ai");
           aiCandidates = aiCandidates.filter(candidate => bonusDigits.split('').every(d => candidate.includes(d)));
           aiBonusHintApplied = true;
         }
