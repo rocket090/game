@@ -1,4 +1,4 @@
-## Number Game　
+## Number Game
 <a href="https://rocket090.github.io/game/ai.html">AIモード</a>
 <a href="https://rocket090.github.io/game/solo.html">Soloモード</a>
 
