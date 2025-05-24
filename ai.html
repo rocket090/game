@@ -3,47 +3,9 @@
 <head>
 <meta charset="utf-8">
 <title>NumberGame-AI</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<style>
-    body { font-family: 'Arial', sans-serif; text-align: center; background-color: #f4f4f4; color: #333; }
-    h1 { color: #222; }
-    .game-container {
-      background: white; padding: 30px; margin: 20px auto;
-      width: 80%; max-width: 515px; border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    .number-buttons button,
-    .action-buttons button {
-      margin: 3px; padding: 10px; font-size: 16px;
-      width: 41px; height: 40px; border: none; border-radius: 5px;
-      cursor: pointer; background: #cccccc; color: black;
-    }
-    .number-buttons .disabled,
-    .action-buttons .disabled { background-color: #999; pointer-events: none; }
-    .action-buttons button { width: 90px; }
-    .reset-button { background: #666; }
-    .history-container { text-align: left; margin-top: 20px; }
-    ul { list-style: none; padding: 0; }
-    .history-entry {
-      display: block; width: max-content; margin: -5px 5px;
-      padding: 8px; border-radius: 5px; background: #ccc;
-    }
-    .human-history { text-align: right; margin-left: auto; background-color: #add8e6 !important;}
-    .ai-history { text-align: left; margin-right: auto;  }
-    .history-index {
-      background: #888; color: white; width: 30px; height: 30px;
-      border-radius: 5px; display: inline-block;
-      text-align: center; line-height: 30px; font-weight: bold;
-    }
-    .history-text { display: inline-block; margin-left: 10px; }
-    .action-result {
-      margin-top: 10px; padding: 10px; background-color: #e0e0e0;
-      border-radius: 5px; display: none;
-    }
-    .history-entry.correct { background-color: #ffe0e0 !important; }
-    .history-entry.correct .history-index { background-color: red; }
-  </style>
 </head>
 <body>
   <div class="game-container">
@@ -778,5 +740,6 @@
         return bestAction;
     }
   </script>
+  <script src="al.script"></script>
 </body>
 </html>
